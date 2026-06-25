@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  echo-organize:
+    build: .
+    container_name: echo-organize
+    ports:
+      - "8000:8000"
+    volumes:
+      # --- MAPEAMENTO DE PASTAS DE MÚSICA (Importante) ---
+      # Para o Docker conseguir acessar suas músicas no computador hospedeiro,
+      # você precisa mapear as pastas locais para caminhos dentro do container.
+      # Substitua os caminhos abaixo pelos da sua máquina se necessário.
+      
+      # Mapeia a pasta 'Music' interna de teste
+      - ./Music:/app/Music
+      
+      # EXEMPLOS DE MAPEAMENTO DO HOST (Ajuste conforme seu computador):
+      # No Windows:
+      # - C:\Users\felin\Music:/app/host_music
+      # - C:\Users\felin\Downloads:/app/host_downloads
+      #
+      # No Linux (Pop!_OS / Ubuntu):
+      # - /home/username/Música:/app/host_music
+      # - /home/username/Downloads:/app/host_downloads
+      
+    environment:
+      - PORT=8000
+    restart: unless-stopped

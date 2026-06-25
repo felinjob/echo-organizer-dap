@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Development / IDE settings
+.vscode/
+.idea/
+
+# Local cache and system generated files
+.system_generated/
+*.log
+test_out/
+test_browse.py
+
+# --- EXCLUIR ARQUIVOS DE MÚSICA E DE TESTES ---
+Music/
+*.mp3
+*.flac
+*.m4a
+*.mp4
+*.lrc
+library_index.txt

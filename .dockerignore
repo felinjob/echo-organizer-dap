@@ -1,0 +1,16 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+env/
+venv/
+test_out/
+test_browse.py
+.system_generated/
+*.log
+.agents/
+AGENTS.md
