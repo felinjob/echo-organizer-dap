@@ -185,7 +185,7 @@ def scan_directory(request: ScanRequest):
     Recursively scans the directory for MP3, FLAC, and M4A files and returns
     their original metadata and heuristic local tags.
     """
-    source_dir = request.source_dir
+    source_dir = os.path.abspath(request.source_dir)
     if not os.path.exists(source_dir):
         raise HTTPException(status_code=400, detail="Diretório de origem não existe.")
         
@@ -349,7 +349,7 @@ def process_files(request: ProcessRequest):
     Cleans, tags, and organizes files to the destination directory.
     Uses sequential file creation order to preserve FAT32 sorting.
     """
-    dest_dir = request.dest_dir
+    dest_dir = os.path.abspath(request.dest_dir)
     try:
         os.makedirs(dest_dir, exist_ok=True)
     except Exception as e:
@@ -438,7 +438,7 @@ def generate_library_index(request: IndexRequest):
     Generates a library_index.txt file in the destination root folder,
     listing all organized artists, albums, and tracks in a nice tree format.
     """
-    dest_dir = request.dest_dir
+    dest_dir = os.path.abspath(request.dest_dir)
     if not os.path.exists(dest_dir) or not os.path.isdir(dest_dir):
         raise HTTPException(status_code=400, detail="Diretório de destino inválido ou inexistente.")
         

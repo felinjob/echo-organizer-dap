@@ -6,6 +6,8 @@ import os
 
 # Rate limiting: MusicBrainz allows 1 request per second.
 LAST_REQUEST_TIME = 0.0
+# Rate limiting: LRCLib (soft limit, usually ~1-2 requests per second is safe)
+LAST_LRCLIB_REQUEST_TIME = 0.0
 
 def rate_limited_get(url, headers=None):
     global LAST_REQUEST_TIME
@@ -22,7 +24,11 @@ def rate_limited_get(url, headers=None):
         response = requests.get(url, headers=headers, timeout=10)
         LAST_REQUEST_TIME = time.time()
         if response.status_code == 200:
-            return response.json()
+            try:
+                return response.json()
+            except Exception as json_err:
+                print(f"MusicBrainz API JSON error: {json_err}")
+                return None
         elif response.status_code == 403:
             print(f"MusicBrainz API HTTP 403 Forbidden. User-Agent might be blocked.")
         else:
@@ -111,10 +117,24 @@ def fetch_lyrics_from_lrclib(artist, title, album=None):
         "User-Agent": "MusicTaggerDAP/1.0.0 (https://github.com/user/music-tagger-dap)"
     }
     
+    global LAST_LRCLIB_REQUEST_TIME
+    
     try:
+        now = time.time()
+        elapsed = now - LAST_LRCLIB_REQUEST_TIME
+        if elapsed < 1.0:
+            time.sleep(1.0 - elapsed)
+            
         response = requests.get(url, params=params, headers=headers, timeout=8)
+        LAST_LRCLIB_REQUEST_TIME = time.time()
+        
         if response.status_code == 200:
-            data = response.json()
+            try:
+                data = response.json()
+            except Exception as json_err:
+                print(f"LRCLib JSON error: {json_err}")
+                return None
+                
             return {
                 "synced": data.get("syncedLyrics"),
                 "plain": data.get("plainLyrics")
@@ -123,10 +143,22 @@ def fetch_lyrics_from_lrclib(artist, title, album=None):
             # Try search endpoint as fallback
             search_url = "https://lrclib.net/api/search"
             search_params = {"q": f"{artist} {title}"}
+            now2 = time.time()
+            elapsed2 = now2 - LAST_LRCLIB_REQUEST_TIME
+            if elapsed2 < 1.0:
+                time.sleep(1.0 - elapsed2)
+                
             search_resp = requests.get(search_url, params=search_params, headers=headers, timeout=8)
+            LAST_LRCLIB_REQUEST_TIME = time.time()
+            
             if search_resp.status_code == 200:
-                results = search_resp.json()
-                if results:
+                try:
+                    results = search_resp.json()
+                except Exception as json_err:
+                    print(f"LRCLib Search JSON error: {json_err}")
+                    return None
+                    
+                if results and isinstance(results, list) and len(results) > 0:
                     best_match = results[0]
                     return {
                         "synced": best_match.get("syncedLyrics"),

@@ -104,6 +104,7 @@
             <div class="table-header">
                 <h3>Lista de Músicas</h3>
                 <div class="table-actions">
+                    <button id="clear-queue-btn" class="btn text-btn" style="color: #f87171;">Limpar Fila</button>
                     <button id="select-all-btn" class="btn text-btn">Selecionar Todas</button>
                     <button id="deselect-all-btn" class="btn text-btn">Desmarcar Todas</button>
                 </div>
@@ -167,6 +168,7 @@
                     <span id="progress-percent">0%</span>
                     <span id="progress-fraction">0 / 0</span>
                 </div>
+                <div id="progress-current-file" style="font-size: 11px; color: var(--accent-cyan); text-align: center; margin-top: 5px; min-height: 16px;"></div>
             </div>
 
             <div class="log-panel" id="log-panel">

@@ -26,6 +26,7 @@ const deselectAllBtn = document.getElementById('deselect-all-btn');
 const headerSelectAll = document.getElementById('header-select-all');
 const mbBulkBtn = document.getElementById('mb-bulk-btn');
 const processBtn = document.getElementById('process-btn');
+const clearQueueBtn = document.getElementById('clear-queue-btn');
 
 // Processing Modal Elements
 const processModal = document.getElementById('process-modal');
@@ -35,6 +36,7 @@ const progressFraction = document.getElementById('progress-fraction');
 const logPanel = document.getElementById('log-panel');
 const modalSuccessActions = document.getElementById('modal-success-actions');
 const modalCloseBtn = document.getElementById('modal-close-btn');
+const progressCurrentFile = document.getElementById('progress-current-file');
 
 // Manual Search Modal Elements
 const searchModal = document.getElementById('search-modal');
@@ -52,6 +54,15 @@ deselectAllBtn.addEventListener('click', () => toggleAllSelection(false));
 headerSelectAll.addEventListener('change', (e) => toggleAllSelection(e.target.checked));
 mbBulkBtn.addEventListener('click', fetchMusicBrainzBulk);
 processBtn.addEventListener('click', processSelectedFiles);
+clearQueueBtn.addEventListener('click', () => {
+    filesState = [];
+    selectedSources.clear();
+    updateStats();
+    renderTable();
+    emptyState.classList.remove('hidden');
+    statsPanel.classList.add('hidden');
+    workspacePanel.classList.add('hidden');
+});
 modalCloseBtn.addEventListener('click', () => {
     processModal.classList.add('hidden');
     scanDirectory();
@@ -554,10 +565,11 @@ async function processSelectedFiles() {
     const total = selectedList.length;
     let processed = 0;
     
-    const batchSize = 3;
+    const batchSize = 1;
     
     for (let i = 0; i < total; i += batchSize) {
         const batch = selectedList.slice(i, i + batchSize);
+        progressCurrentFile.innerText = `Processando: ${batch[0].original.filename}...`;
         const mappings = batch.map(file => ({
             source: file.source,
             tags: file.proposed
