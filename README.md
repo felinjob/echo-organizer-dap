@@ -1,6 +1,6 @@
 # EchoOrganize
 
-Quem usa DAPs de entrada ou intermediários — como o **SnoSky Echo Mini**, players baseados em SoCs **Rockchip, Ingenic ou Actions**, ou centrais multimídia automotivas antigas — cedo ou tarde esbarra nos mesmos problemas irritantes: álbuns que tocam fora de ordem mesmo com as faixas numeradas, capas que travam o aparelho ou aparecem como um quadrado preto, nomes truncados e acentos quebrados na tela.
+Quem usa DAPs de entrada ou intermediários — como o **SnowSky Echo Mini**, players baseados em SoCs **Rockchip, Ingenic ou Actions**, ou centrais multimídia automotivas antigas — cedo ou tarde esbarra nos mesmos problemas irritantes: álbuns que tocam fora de ordem mesmo com as faixas numeradas, capas que travam o aparelho ou aparecem como um quadrado preto, nomes truncados e acentos quebrados na tela.
 
 A culpa quase nunca é do cartão microSD. O problema está na forma como sistemas operacionais modernos gravam em volumes **FAT32/exFAT** e em como os decodificadores de hardware desses aparelhos leem containers de áudio.
 
