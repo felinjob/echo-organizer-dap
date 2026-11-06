@@ -3,164 +3,318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DAP File Organizer & Tagger</title>
-    <!-- Modern Google Font -->
+    <title>ECHO//ORGANIZE — CYBERDECK DAP MASTERING SYSTEM</title>
+    <link rel="icon" href="/favicon.ico" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <div class="glow-container">
-        <div class="glow-orb orb-1"></div>
-        <div class="glow-orb orb-2"></div>
-    </div>
+    <!-- Subtle CRT Scanline & Technical Grid Overlay -->
+    <div class="crt-overlay" aria-hidden="true"></div>
+    <div class="grid-backdrop" aria-hidden="true"></div>
 
     <div class="app-container">
-        <!-- Header -->
-        <header>
+        <!-- Top System Telemetry Rail -->
+        <div class="sys-rail">
+            <div class="sys-rail-left">
+                <span class="sys-tag">SYS//ECHO-DAP-2.1</span>
+                <span class="sys-divider">//</span>
+                <span class="sys-spec">SOC: ROCKCHIP · INGENIC · ACTIONS</span>
+                <span class="sys-divider">//</span>
+                <span class="sys-spec">COVER: SOF0 BASELINE 4:2:0 [500PX]</span>
+                <span class="sys-divider">//</span>
+                <span class="sys-spec">TAG: ID3v2.3 UTF-16 · FLAC PAD &le;4KB</span>
+            </div>
+            <div class="sys-rail-right">
+                <span class="sys-clock" id="sys-clock">00:00:00</span>
+                <div class="status-badge" id="api-status">
+                    <span class="pulse-dot"></span>
+                    <span>FAT32 // TWO-PASS ENGINE ONLINE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hardware Deck Header -->
+        <header class="deck-header">
             <div class="logo-area">
-                <div class="cassette-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <rect x="2" y="4" width="20" height="16" rx="2" />
-                        <circle cx="8" cy="12" r="2" />
-                        <circle cx="16" cy="12" r="2" />
-                        <path d="M6 16h12" />
-                        <path d="M10 8h4v3h-4z" />
+                <div class="cassette-icon" id="deck-cassette" title="DAT / Cassette Hardware Transport">
+                    <svg viewBox="0 0 64 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="60" height="40" stroke="currentColor" stroke-width="2" />
+                        <path d="M10 2 L16 10 H48 L54 2" stroke="currentColor" stroke-width="1.5" />
+                        <rect x="12" y="15" width="40" height="14" stroke="#00f0ff" stroke-width="1.5" />
+                        <circle class="reel reel-left" cx="21" cy="22" r="4.5" stroke="#fcee09" stroke-width="2" stroke-dasharray="3 2" />
+                        <circle class="reel reel-right" cx="43" cy="22" r="4.5" stroke="#fcee09" stroke-width="2" stroke-dasharray="3 2" />
+                        <line x1="27" y1="22" x2="37" y2="22" stroke="#00f0ff" stroke-width="1.2" opacity="0.7" />
+                        <path d="M14 42 L18 34 H46 L50 42" stroke="currentColor" stroke-width="1.5" />
+                        <circle cx="8" cy="37" r="1.5" fill="currentColor" />
+                        <circle cx="56" cy="37" r="1.5" fill="currentColor" />
                     </svg>
                 </div>
                 <div class="logo-text">
-                    <h1>EchoOrganize</h1>
-                    <p>Otimizado para DAPs & SnoSky Echo Mini</p>
+                    <div class="logo-kicker">PORTABLE AUDIO HARDWARE MASTERING DECK</div>
+                    <h1>ECHO<span class="accent-slash">//</span>ORGANIZE</h1>
+                    <p>Alocação Física Sequencial FAT32, Sanitização Determinística NFC &amp; Capas Hardware-Safe para DAPs</p>
                 </div>
             </div>
-            <div class="status-badge" id="api-status">
-                <span class="pulse-dot"></span>
-                Servidor Pronto
+
+            <!-- VFD Signal Display -->
+            <div class="vfd-module" aria-label="VFD Hardware Telemetry">
+                <div class="vfd-header">
+                    <span>VFD // SIGNAL &amp; BUS MONITOR</span>
+                    <span class="vfd-mode" id="vfd-mode-label">IDLE // READY</span>
+                </div>
+                <div class="vfd-bars">
+                    <span class="vfd-bar" style="height: 35%"></span>
+                    <span class="vfd-bar" style="height: 65%"></span>
+                    <span class="vfd-bar" style="height: 85%"></span>
+                    <span class="vfd-bar" style="height: 50%"></span>
+                    <span class="vfd-bar" style="height: 95%"></span>
+                    <span class="vfd-bar" style="height: 70%"></span>
+                    <span class="vfd-bar" style="height: 40%"></span>
+                    <span class="vfd-bar" style="height: 80%"></span>
+                    <span class="vfd-bar" style="height: 60%"></span>
+                    <span class="vfd-bar" style="height: 30%"></span>
+                    <span class="vfd-bar" style="height: 75%"></span>
+                    <span class="vfd-bar" style="height: 45%"></span>
+                </div>
+                <div class="vfd-footer">
+                    <span>PASS_01: AUDIO</span>
+                    <span>PASS_02: .LRC BOM</span>
+                    <span>LIMIT: 200B</span>
+                </div>
             </div>
         </header>
 
-        <!-- Directory Config Section -->
+        <!-- Section 01: I/O Bus Routing -->
         <section class="config-card glass">
-            <h2>Configuração de Pastas</h2>
-            <p class="section-desc">Informe a pasta de origem contendo as músicas bagunçadas e o destino para onde a cópia organizada será gerada.</p>
-            
-            <div class="input-grid">
-                <div class="input-group">
-                    <label for="source-dir">Diretório de Origem (Músicas Bagunçadas)</label>
-                    <div class="input-wrapper-row">
-                        <div class="input-wrapper" style="flex: 1;">
-                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                            <input type="text" id="source-dir" placeholder="Ex: C:\Users\Nome\Downloads\MinhasMusicas">
-                        </div>
-                        <button id="browse-source-btn" class="btn secondary-btn" style="padding: 12px 16px; height: 46px; white-space: nowrap;">Procurar...</button>
+            <div class="panel-header-bar">
+                <div class="panel-title-group">
+                    <span class="panel-index">01</span>
+                    <div>
+                        <h2>ROTEAMENTO DE BARRAMENTO // ORIGEM &amp; DESTINO</h2>
+                        <p class="section-desc">Defina o diretório bruto de entrada e o volume FAT32/exFAT de saída (Cartão MicroSD do DAP ou diretório mestre).</p>
                     </div>
                 </div>
-                
+                <span class="panel-corner-tag">I/O_BUS // MOUNT</span>
+            </div>
+
+            <div class="input-grid">
                 <div class="input-group">
-                    <label for="dest-dir">Diretório de Destino (Cartão SD ou Pasta Limpa)</label>
+                    <label for="source-dir">
+                        <span class="bus-tag bus-in">IN // SOURCE</span>
+                        DIRETÓRIO DE ORIGEM (ARQUIVOS BRUTOS)
+                    </label>
                     <div class="input-wrapper-row">
-                        <div class="input-wrapper" style="flex: 1;">
-                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="21" x2="9" y2="9"></line><line x1="3" y1="9" x2="21" y2="9"></line></svg>
-                            <input type="text" id="dest-dir" placeholder="Ex: E:\Music (Unidade do Cartão SD)">
+                        <div class="input-wrapper">
+                            <span class="input-prompt">&gt;</span>
+                            <input type="text" id="source-dir" placeholder="C:\Users\User\Music\Rips_Brutos" spellcheck="false" autocomplete="off">
                         </div>
-                        <button id="browse-dest-btn" class="btn secondary-btn" style="padding: 12px 16px; height: 46px; white-space: nowrap;">Procurar...</button>
+                        <button id="browse-source-btn" class="btn secondary-btn browse-btn" type="button">[ EXPLORAR ]</button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="dest-dir">
+                        <span class="bus-tag bus-out">OUT // FAT32 SD</span>
+                        DIRETÓRIO DE DESTINO (CARTÃO SD DO DAP / BIBLIOTECA)
+                    </label>
+                    <div class="input-wrapper-row">
+                        <div class="input-wrapper">
+                            <span class="input-prompt">&gt;</span>
+                            <input type="text" id="dest-dir" placeholder="E:\Music (Unidade Física FAT32)" spellcheck="false" autocomplete="off">
+                        </div>
+                        <button id="browse-dest-btn" class="btn secondary-btn browse-btn" type="button">[ EXPLORAR ]</button>
                     </div>
                 </div>
             </div>
 
             <div class="action-bar">
-                <button id="scan-btn" class="btn primary-btn">
-                    <span class="btn-text">Varrer e Analisar Músicas</span>
+                <div class="action-hints">
+                    <span class="hint-chip">SUPPORTED: .MP3 · .FLAC · .M4A · .MP4</span>
+                    <span class="hint-chip">NORMALIZER: UNICODE NFC + FEAT. EXTRACTOR</span>
+                </div>
+                <button id="scan-btn" class="btn primary-btn" type="button">
+                    <span class="btn-text">VARRER &amp; ANALISAR BARRAMENTO</span>
                     <span class="spinner hidden"></span>
                 </button>
             </div>
         </section>
 
-        <!-- Dashboard / Stats -->
+        <!-- Section 02: Telemetry Matrix / Stats -->
         <section class="stats-panel glass hidden" id="stats-panel">
             <div class="stat-card">
+                <div class="stat-code">CNT // 01</div>
                 <div class="stat-num" id="total-count">0</div>
-                <div class="stat-label">Arquivos Detectados</div>
+                <div class="stat-label">FAIXAS DETECTADAS</div>
             </div>
             <div class="stat-card">
+                <div class="stat-code">ALB // 02</div>
+                <div class="stat-num" id="albums-count">0</div>
+                <div class="stat-label">BLOCOS DE ÁLBUM</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-code">MBZ // 03</div>
                 <div class="stat-num" id="mb-matches-count">0</div>
-                <div class="stat-label">Buscados no MusicBrainz</div>
+                <div class="stat-label">SINCRONIZADAS MUSICBRAINZ</div>
             </div>
             <div class="stat-card">
+                <div class="stat-code">ART // 04</div>
                 <div class="stat-num" id="cover-count">0</div>
-                <div class="stat-label">Com Arte Integrada</div>
+                <div class="stat-label">CAPA 4:2:0 HARDWARE-SAFE</div>
             </div>
             <div class="stat-card action-card">
-                <button id="mb-bulk-btn" class="btn secondary-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                    Buscar Lote MusicBrainz
+                <div class="stat-code">NET // RELEASE-CENTRIC</div>
+                <button id="mb-bulk-btn" class="btn secondary-btn" type="button">
+                    <span class="btn-text">SINCRONIZAR ÁLBUNS [MUSICBRAINZ + LRCLIB]</span>
+                    <span class="spinner hidden"></span>
                 </button>
             </div>
         </section>
 
-        <!-- Main Workspace: File List Table -->
+        <!-- Section 03: Main Workspace (Album Rack & Live FAT32 Preview) -->
         <section class="workspace glass hidden" id="workspace-panel">
             <div class="table-header">
-                <h3>Lista de Músicas</h3>
-                <div class="table-actions">
-                    <button id="clear-queue-btn" class="btn text-btn" style="color: #f87171;">Limpar Fila</button>
-                    <button id="select-all-btn" class="btn text-btn">Selecionar Todas</button>
-                    <button id="deselect-all-btn" class="btn text-btn">Desmarcar Todas</button>
+                <div class="workspace-title-group">
+                    <div class="panel-title-group">
+                        <span class="panel-index">02</span>
+                        <div>
+                            <h3>RACK DE ÁLBUNS &amp; TABELA DE ALOCAÇÃO FAT32 (LIVE PREVIEW)</h3>
+                        </div>
+                    </div>
+                    <label class="overwrite-toggle" title="Quando ativado, permite sobrescrever e desfragmentar via staging arquivos que já existam no cartão SD.">
+                        <input type="checkbox" id="allow-overwrite-checkbox" checked>
+                        <span>PERMITIR SOBRESCRITA / RE-STAGING DE FAIXAS JÁ EXISTENTES NO DESTINO</span>
+                    </label>
+                </div>
+
+                <div class="workspace-controls-row">
+                    <div class="filter-box">
+                        <span class="filter-prefix">FILTER//</span>
+                        <input type="text" id="workspace-filter-input" placeholder="Filtrar por álbum, artista ou faixa..." spellcheck="false" autocomplete="off">
+                    </div>
+                    <div class="table-actions">
+                        <input type="checkbox" id="header-select-all" checked class="hidden">
+                        <button id="expand-all-btn" class="btn text-btn" type="button">[ + EXPANDIR ]</button>
+                        <button id="collapse-all-btn" class="btn text-btn" type="button">[ - RECOLHER ]</button>
+                        <button id="select-all-btn" class="btn text-btn" type="button">[ MARCAR TUDO ]</button>
+                        <button id="deselect-all-btn" class="btn text-btn" type="button">[ DESMARCAR ]</button>
+                        <button id="clear-queue-btn" class="btn text-btn danger-text-btn" type="button">[ EJETAR FILA ]</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="table-container">
-                <table id="music-table">
-                    <thead>
-                        <tr>
-                            <th width="40"><input type="checkbox" id="header-select-all" checked></th>
-                            <th>Original</th>
-                            <th width="30"></th>
-                            <th>Proposta DAP (Otimizada)</th>
-                            <th width="100">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="music-list-tbody">
-                        <!-- Dynamic items will be added here -->
-                    </tbody>
-                </table>
+            <!-- Collision Alert Banner -->
+            <div class="collision-banner hidden" id="collision-banner">
+                <div class="collision-banner-icon">[!ERR_COLLISION!]</div>
+                <div class="collision-banner-text">
+                    <strong>CONFLITO DE ALOCAÇÃO FÍSICA DETECTADO NA TABELA FAT32</strong>
+                    <span id="collision-banner-detail">Duas ou mais faixas selecionadas apontam para o mesmo endereço físico de destino. Ajuste o número da faixa, o título ou desmarque a duplicata antes de iniciar a gravação.</span>
+                </div>
             </div>
 
-            <!-- Floating Process Bar -->
+            <!-- Album Blocks Container -->
+            <div class="albums-container" id="albums-container">
+                <!-- Album rack units rendered via safe DOM APIs -->
+            </div>
+
+            <!-- Legacy hidden tbody kept for structural compatibility -->
+            <table class="hidden"><tbody id="music-list-tbody"></tbody></table>
+
+            <!-- Sticky Master Transport Bar -->
             <div class="process-bar-area">
                 <div class="process-info">
-                    <span id="selected-count-label">0 de 0 selecionados para gravar</span>
+                    <div class="transport-lamp"></div>
+                    <span id="selected-count-label">0 de 0 músicas selecionadas para gravar</span>
+                    <span id="collision-count-badge" class="badge badge-collision hidden">0 colisões</span>
                 </div>
-                <button id="process-btn" class="btn accent-btn glow-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><polyline points="22 11.08 22 12 12 22 9 19"></polyline><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect></svg>
-                    Gravar e Organizar Sequencialmente
+                <button id="process-btn" class="btn accent-btn glow-btn" type="button">
+                    <span class="transport-rec-dot"></span>
+                    <span id="process-btn-label">GRAVAR &amp; ORGANIZAR SEQUENCIALMENTE [FAT32]</span>
                 </button>
             </div>
         </section>
 
         <!-- Empty State -->
         <section class="empty-state glass" id="empty-state">
-            <div class="empty-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M9 18V5l12-2v13" />
-                    <circle cx="6" cy="18" r="3" />
-                    <circle cx="18" cy="16" r="3" />
-                </svg>
+            <div class="empty-grid-art">
+                <div class="empty-code">STATUS // NO_MEDIA_LOADED</div>
+                <div class="empty-icon">
+                    <svg viewBox="0 0 80 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="4" width="76" height="48" stroke="currentColor" stroke-width="2" stroke-dasharray="6 3" />
+                        <circle cx="26" cy="28" r="9" stroke="#fcee09" stroke-width="2" />
+                        <circle cx="54" cy="28" r="9" stroke="#00f0ff" stroke-width="2" />
+                        <circle cx="26" cy="28" r="2" fill="#fcee09" />
+                        <circle cx="54" cy="28" r="2" fill="#00f0ff" />
+                        <line x1="16" y1="44" x2="64" y2="44" stroke="currentColor" stroke-width="2" />
+                    </svg>
+                </div>
+                <h3>BARRAMENTO DE ÁUDIO VAZIO</h3>
+                <p>Acione <strong>[ EXPLORAR ]</strong> para montar a pasta de origem e a unidade do cartão SD, e em seguida dispare <strong>VARRER &amp; ANALISAR BARRAMENTO</strong>.</p>
             </div>
-            <h3>Nenhum diretório verificado</h3>
-            <p>Insira a pasta de origem das suas músicas acima e clique em "Varrer e Analisar Músicas" para começar a organizá-las no formato ideal.</p>
         </section>
     </div>
 
-    <!-- Execution Overlay (Processing Modal) -->
+    <!-- Web Directory Explorer Modal (/api/fs/roots & /api/fs/ls) -->
+    <div class="modal-overlay hidden" id="fs-explorer-modal">
+        <div class="modal-content glass fs-modal-content">
+            <div class="fs-modal-header">
+                <div>
+                    <div class="modal-kicker">FS//NAVIGATOR — MULTI-PLATFORM MOUNT EXPLORER</div>
+                    <h2 id="fs-modal-title">SELECIONAR DIRETÓRIO</h2>
+                    <p class="modal-subtitle">Inspeção direta de discos locais, cartões SD FAT32/exFAT e unidades removíveis</p>
+                </div>
+                <button id="fs-close-btn" class="btn secondary-btn modal-close-x" type="button">[ ESC // X ]</button>
+            </div>
+
+            <div class="fs-current-bar">
+                <button id="fs-up-btn" class="btn secondary-btn" type="button" title="Subir um nível de diretório">[ ⬆ UP ]</button>
+                <input type="text" id="fs-current-path-input" class="fs-path-input" placeholder="Caminho absoluto..." spellcheck="false">
+                <button id="fs-go-btn" class="btn secondary-btn" type="button">[ IR ]</button>
+            </div>
+
+            <div class="fs-layout">
+                <div class="fs-roots-sidebar">
+                    <div class="fs-pane-title">VOLUMES &amp; MONTAGENS</div>
+                    <div id="fs-roots-list" class="fs-roots-list"></div>
+                </div>
+                <div class="fs-dirs-main">
+                    <div class="fs-pane-header">
+                        <span class="fs-pane-title">SUBDIRETÓRIOS</span>
+                        <span id="fs-dir-meta" class="fs-dir-meta"></span>
+                    </div>
+                    <div id="fs-dirs-list" class="fs-dirs-list"></div>
+                </div>
+            </div>
+
+            <div class="fs-modal-footer">
+                <div id="fs-space-indicator" class="fs-space-indicator"></div>
+                <div class="fs-footer-actions">
+                    <button id="fs-cancel-btn" class="btn secondary-btn" type="button">CANCELAR</button>
+                    <button id="fs-select-btn" class="btn primary-btn" type="button">SELECIONAR ESTE DIRETÓRIO</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Execution Overlay (SSE Processing Modal with Two-Pass & Pause/Cancel) -->
     <div class="modal-overlay hidden" id="process-modal">
-        <div class="modal-content glass">
-            <h2>Processando Biblioteca</h2>
-            <p class="modal-subtitle">Organizando metadados, compactando capas e gravando fisicamente na ordem do álbum (FAT32)...</p>
-            
+        <div class="modal-content glass process-modal-box">
+            <div class="process-modal-top">
+                <div>
+                    <div class="modal-kicker">FAT32//ATOMIC SEQUENTIAL WRITER</div>
+                    <h2 id="process-modal-title">GRAVANDO NO DISPOSITIVO</h2>
+                    <p class="modal-subtitle">Escrita transacional (.tmp + os.fsync + replace) em Duas Passadas para indexação física determinística</p>
+                </div>
+                <span class="badge badge-stage" id="process-stage-badge">PASSADA 1: ÁUDIO</span>
+            </div>
+
             <div class="progress-container">
+                <div class="progress-album-line">
+                    <span id="progress-current-album" class="progress-album-name">INICIALIZANDO BARRAMENTO...</span>
+                    <span id="progress-current-file" class="progress-file-name"></span>
+                </div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
                 </div>
@@ -168,76 +322,55 @@
                     <span id="progress-percent">0%</span>
                     <span id="progress-fraction">0 / 0</span>
                 </div>
-                <div id="progress-current-file" style="font-size: 11px; color: var(--accent-cyan); text-align: center; margin-top: 5px; min-height: 16px;"></div>
             </div>
 
-            <div class="log-panel" id="log-panel">
-                <!-- Live logs will print here -->
-            </div>
+            <div class="log-panel" id="log-panel"></div>
 
-            <div class="modal-actions hidden" id="modal-success-actions">
-                <button id="modal-close-btn" class="btn primary-btn">Concluído</button>
+            <div class="modal-actions-bar">
+                <div class="job-control-btns" id="job-control-btns">
+                    <button id="job-pause-btn" class="btn secondary-btn" type="button">⏸ PAUSAR LOTE</button>
+                    <button id="job-cancel-btn" class="btn danger-btn" type="button">🛑 ABORTAR &amp; LIMPAR .TMP</button>
+                </div>
+                <div class="modal-actions hidden" id="modal-success-actions">
+                    <button id="modal-close-btn" class="btn primary-btn" type="button">FECHAR CONSOLE</button>
+                </div>
             </div>
+        </div>
     </div>
 
     <!-- Manual Search Modal -->
     <div class="modal-overlay hidden" id="search-modal">
-        <div class="modal-content glass" style="max-width: 480px; padding: 30px;">
-            <h2>Busca Manual MusicBrainz</h2>
-            <p class="modal-subtitle" style="margin-bottom: 20px;">Insira o Artista e Título para buscar metadados e capas oficiais correspondentes no banco de dados.</p>
-            
-            <div class="input-group" style="margin-bottom: 15px;">
-                <label for="search-artist" style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">Artista</label>
+        <div class="modal-content glass manual-search-box">
+            <div class="modal-kicker">MUSICBRAINZ // LRCLIB OVERRIDE</div>
+            <h2>BUSCA MANUAL DE FAIXA</h2>
+            <p class="modal-subtitle">Consulta individual ponderada pela duração física real extraída do container de áudio.</p>
+
+            <div class="input-group" style="margin-top: 18px; margin-bottom: 14px;">
+                <label for="search-artist">ARTISTA DA FAIXA</label>
                 <div class="input-wrapper">
-                    <input type="text" id="search-artist" placeholder="Ex: Pink Floyd" style="padding: 10px 14px; font-size: 13px;">
-                </div>
-            </div>
-            
-            <div class="input-group" style="margin-bottom: 25px;">
-                <label for="search-title" style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">Título da Música</label>
-                <div class="input-wrapper">
-                    <input type="text" id="search-title" placeholder="Ex: Time" style="padding: 10px 14px; font-size: 13px;">
+                    <span class="input-prompt">&gt;</span>
+                    <input type="text" id="search-artist" placeholder="Ex: Kraftwerk" spellcheck="false">
                 </div>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button id="search-cancel-btn" class="btn secondary-btn" style="padding: 10px 20px; font-size: 13px;">Cancelar</button>
-                <button id="search-submit-btn" class="btn primary-btn" style="padding: 10px 20px; font-size: 13px;">
-                    <span class="btn-text">Pesquisar</span>
+            <div class="input-group" style="margin-bottom: 22px;">
+                <label for="search-title">TÍTULO DA FAIXA</label>
+                <div class="input-wrapper">
+                    <span class="input-prompt">&gt;</span>
+                    <input type="text" id="search-title" placeholder="Ex: Computer World" spellcheck="false">
+                </div>
+            </div>
+
+            <div class="manual-search-actions">
+                <button id="search-cancel-btn" class="btn secondary-btn" type="button">CANCELAR</button>
+                <button id="search-submit-btn" class="btn primary-btn" type="button">
+                    <span class="btn-text">CONSULTAR API</span>
                     <span class="spinner hidden"></span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Drag and Drop Overlay -->
-    <div class="drag-overlay hidden" id="drag-drop-overlay">
-        <div class="drag-overlay-content glass">
-            <div class="drag-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v8M8 12h8" />
-                </svg>
-            </div>
-            <h2>Solte suas Pastas de Música Aqui</h2>
-            <p>Arraste uma ou mais pastas para adicioná-las automaticamente à fila</p>
-        </div>
-    </div>
-
-    <!-- Duplicate Path Resolver Modal -->
-    <div class="modal-overlay hidden" id="path-resolver-modal">
-        <div class="modal-content glass" style="max-width: 500px;">
-            <h2>Múltiplas Pastas Encontradas</h2>
-            <p class="modal-subtitle">Encontramos pastas com o nome solicitado em mais de um local. Escolha a que você deseja adicionar:</p>
-            <div class="resolver-options-list" id="path-resolver-options" style="display: flex; flex-direction: column; gap: 10px; margin: 15px 0;">
-                <!-- Paths will be inserted dynamically -->
-            </div>
-            <div style="display: flex; justify-content: flex-end;">
-                <button id="path-resolver-cancel" class="btn secondary-btn" style="padding: 8px 16px; font-size: 13px;">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
+    <script src="/app.js"></script>
 </body>
 </html>

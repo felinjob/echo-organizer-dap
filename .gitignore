@@ -21,6 +21,10 @@ ENV/
 # Local cache and system generated files
 .system_generated/
 *.log
+*.db
+*.db-wal
+*.db-shm
+*.tmp
 test_out/
 test_browse.py
 

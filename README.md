@@ -1,135 +1,111 @@
 # EchoOrganize
 
-O **EchoOrganize** é um utilitário local projetado para automatizar a padronização de tags de metadados e a reestruturação física de pastas de arquivos de áudio. Ele foi planejado especificamente para contornar restrições severas de hardware e firmware encontradas em reprodutores de áudio digital portátil (**DAPs**), como o *SnoSky Echo Mini*, e em sistemas de som automotivo legados.
+Quem usa DAPs de entrada ou intermediários — como o **SnoSky Echo Mini**, players baseados em SoCs **Rockchip, Ingenic ou Actions**, ou centrais multimídia automotivas antigas — cedo ou tarde esbarra nos mesmos problemas irritantes: álbuns que tocam fora de ordem mesmo com as faixas numeradas, capas que travam o aparelho ou aparecem como um quadrado preto, nomes truncados e acentos quebrados na tela.
 
-A arquitetura do projeto consiste em um servidor de retaguarda (*backend*) em Python 3 utilizando **FastAPI** e a biblioteca **Mutagen** para manipulação de binários, pareado com uma interface web de página única (*frontend*) desenvolvida em HTML5, CSS3 e JavaScript assíncrono.
+A culpa quase nunca é do cartão microSD. O problema está na forma como sistemas operacionais modernos gravam em volumes **FAT32/exFAT** e em como os decodificadores de hardware desses aparelhos leem containers de áudio.
 
----
-
-## O que este projeto resolve?
-
-* Se você é um **entusiasta ou usuário iniciante**, provavelmente já notou que, ao transferir músicas para o seu tocador de música ou cartão SD, as faixas aparecem fora de ordem, as imagens de capa não carregam, letras não sincronizam ou os álbuns se dividem em pastas duplicadas.
-* Se você é um **desenvolvedor**, sabe que isso ocorre por limitações clássicas de memória e firmware em chips embarcados. O EchoOrganize automatiza a correção de todos esses problemas de baixo nível sem que você precise editar arquivo por arquivo manualmente.
+O **EchoOrganize** nasceu para resolver exatamente essa camada física e binária antes que as músicas cheguem ao cartão SD.
 
 ---
 
-## Otimizações de Baixo Nível para Hardware DAP
+## O que acontece debaixo do capô (e como o projeto resolve)
 
-Diferente de organizadores de mídia genéricos para computadores, o EchoOrganize implementa rotinas específicas para o ecossistema de dispositivos embarcados:
+### 1. A ordem física na tabela FAT32 e o mito do `sleep(50ms)`
+Muitos firmwares embarcados não ordenam a lista de reprodução por ordem alfabética nem pelo número da tag `TRCK` — por economia de RAM, eles simplesmente leem os *slots* da tabela de diretório FAT32 na sequência física em que foram alocados no disco.
 
-### Escrita Sequencial Controlada (Correção para FAT32)
-Sistemas operacionais de DAPs básicos reproduzem arquivos com base na ordem física de inserção na tabela de alocação de arquivos (FAT), ignorando a ordenação lógica dos metadados ou os nomes dos arquivos. 
-* **A Solução Técnica:** O motor de cópia do EchoOrganize ordena a fila de arquivos na memória RAM antes de iniciar o processo de gravação. Durante a transferência para a mídia externa, o script impõe uma pausa controlada de 50 milissegundos entre as operações de escrita física. Isso força o controlador de armazenamento do sistema operacional hospedeiro a alocar os clusters do cartão SD em ordem cronológica estrita, respeitando a sequência de discos e faixas do álbum.
+Colocar um `sleep` entre cópias no Python não resolve isso por três motivos:
+1. O *Write Cache* do kernel (Windows/Linux) acumula as escritas na RAM e despeja os blocos no barramento USB/SD fora de ordem.
+2. Se você grava `01.mp3`, depois `01.lrc`, depois `02.mp3`, os arquivos `.lrc` passam a ocupar slots intercalados na tabela de diretório do álbum.
+3. Se a pasta do álbum já existia no cartão e teve arquivos apagados antes, a tabela FAT possui "buracos" (slots livres antigos). O driver do sistema de arquivos aloca a faixa nova no primeiro buraco livre, destruindo a sequência do disco.
 
-### Otimização e Compressão de Capas (Pillow Lanczos)
-A decodificação de imagens de alta resolução (como capas de álbuns de 3000x3000px com compressão progressiva) exige memória de vídeo e processamento de CPU indisponíveis em DAPs de baixo consumo, o que gera travamentos e lentidão na navegação.
-* **A Solução Técnica:** O pipeline intercepta as imagens de capa originais embutidas, converte o espaço de cores para RGB de canal único, reduz a resolução para um teto estrito de 500x500 pixels utilizando amostragem com filtro espacial LANCZOS e salva a nova imagem em formato JPEG otimizado com fator de qualidade de 85%.
-
-### Gravação em Formato ID3v2.3
-O formato de tags ID3v2.4 (mais recente) adota codificação UTF-8 nativa e modificou a nomenclatura de várias tabelas importantes. Muitos firmwares antigos de DAPs e multimídias de carros travam ou exibem caracteres corrompidos ao ler esse formato.
-* **A Solução Técnica:** O EchoOrganize padroniza a escrita de arquivos MP3 forçando estritamente o formato de tags ID3v2.3 (utilizando codificação UTF-16 para caracteres especiais), garantindo compatibilidade universal com qualquer leitor do mercado.
+**Como o [`fat32_writer.py`](app/services/fat32_writer.py) grava:**
+* **Escrita em Duas Passadas por álbum:** Na **Passada 1**, o álbum inteiro é ordenado numericamente por `(disc_number, track_number)` e apenas os arquivos de áudio são gravados em sequência. Cada faixa vai para um arquivo `.tmp`, recebe as tags definitivas, passa por `file.flush()` + `os.fsync(fd)` (forçando a controladora do cartão SD a confirmar a escrita física) e é renomeada atomicamente com `os.replace`. Só quando todas as faixas de áudio do álbum estão gravadas é que a **Passada 2** começa, gravando os arquivos `.lrc` (em `utf-8-sig`, com BOM para evitar mojibake em telas CJK/latinas) no fim da tabela de diretório.
+* **Desfragmentação por Staging:** Se a pasta de destino do álbum já existir no cartão SD, o álbum inteiro é montado primeiro em um diretório oculto temporário no mesmo volume e substituído ao final, garantindo uma tabela de diretório nova e contígua, sem slots órfãos.
 
 ---
 
-## Recursos de Organização e Padronização
+### 2. Capas de álbum que não derrubam o decodificador (`SOF0 Baseline 4:2:0`)
+Decodificadores JPEG de hardware em SoCs embarcados têm memória fixa e costumam falhar silenciosamente diante de **JPEGs Progressivos (`SOF2`)**, amostragem de cor `4:4:4` ou blocos gigantes de metadados `EXIF` (`APP1`) e perfil de cor `ICC` (`APP2`). Por outro lado, recomprimir toda capa cegamente em JPEG 85% degrada capas que já estavam prontas (*generation loss*).
 
-### 1. Agrupamento Inteligente por Artista do Álbum (*Album Artist*)
-Evita a fragmentação de álbuns que possuem participações especiais (*featuring*). O sistema lê a tag de Artista do Álbum (`TPE2` no MP3, `albumartist` no FLAC ou `aART` no M4A) para centralizar todos os arquivos sob a mesma pasta principal de artista. Caso o cantor de uma faixa específica seja diferente do artista do álbum, o arquivo de áudio físico é gerado no formato:
-
-`[Faixa] - [Artista da Faixa] - [Título].ext`
-
-Isso assegura que o metadado individual de autoria de cada música seja preservado no nome do arquivo físico e nas tags de reprodução, sem gerar pastas duplicadas ou vazias na raiz do cartão SD.
-
-### 2. Suporte Nativo a Álbuns Multi-Disco
-Identifica o volume por meio das tabelas `TPOS` ou `discnumber`. Em casos de caixas de álbuns ou edições especiais com múltiplos CDs, o arquivo final recebe o prefixo `[Disco]-[Faixa]` (exemplo: `1-01 - Nome da Música.mp3`, `2-01 - Nome da Música.mp3`). Isso mantém o ordenamento correto e evita colisões de nomes dentro da mesma pasta.
-
-### 3. Engine de Letras Sincronizadas (.lrc)
-* **Geração de Arquivo Sidecar:** Consulta a API do LRCLib para extrair marcações de tempo e salvar um arquivo externo de legenda `.lrc` com o mesmo nome exato da música na mesma pasta, permitindo que a tela de DAPs exiba as letras sincronizadas com a reprodução.
-* **Embutimento Interno:** Adiciona versões em texto plano, limpas de marcações de tempo, diretamente dentro do cabeçalho do arquivo de áudio (`USLT` no MP3, `lyrics` no FLAC ou `©lyr` no M4A) para sistemas que não suportam leitura de arquivos de legenda externos.
-
-### 4. Tratamento Automático de Coletâneas (*Various Artists*)
-Compilações, álbuns de coletâneas e trilhas sonoras com múltiplos intérpretes são identificados e agrupados na estrutura de diretórios `Various Artists / [Nome do Álbum]`, impedindo a criação de dezenas de pastas avulsas para artistas que possuem apenas uma música no seu dispositivo.
+**Como o [`cover_processor.py`](app/core/cover_processor.py) trata imagens:**
+* **Inspeção binária de cabeçalho (Bypass sem perda):** Antes de abrir a imagem no Pillow, o código inspeciona os marcadores binários do JPEG. Se a imagem já for **Baseline DCT (`SOF0` / `0xFFC0`)**, não tiver marcador progressivo (`SOF2` / `0xFFC2`), estiver em subsampling **4:2:0** (`0x22, 0x11, 0x11`), não carregar blocos `APP1`/`APP2`, tiver até `500x500 px` e pesar até `150 KB`, os bytes originais são reaproveitados diretamente sem recompressão.
+* **Reencoding estrito e cache por álbum:** Quando a capa precisa ser convertida (PNG, WebP, resolução alta ou JPEG progressivo), ela é redimensionada via `LANCZOS` para no máximo `500x500 px` e salva com `progressive=False`, `subsampling="4:2:0"`, `optimize=True`, `quality=85` e sem EXIF/ICC. O resultado fica em cache por álbum (RAM + SQLite), fazendo apenas **1 download e 1 redimensionamento por álbum**, não por faixa.
 
 ---
 
-## Estrutura do Repositório
+### 3. Limpeza de containers de áudio e proteção de caminho (`char[256]`)
+Arquivos baixados ou ripados de várias fontes costumam acumular problemas invisíveis que travam a leitura inicial do DAP:
+* **FLAC com megabytes de zeros:** Quando você remove uma capa de 5 MB de um FLAC usando o Mutagen sem limpar os blocos de padding, esses 5 MB viram preenchimento de zeros no cabeçalho do arquivo. O DAP tenta ler tudo antes do primeiro frame de áudio e engasga. Em [`audio_tagger.py`](app/services/audio_tagger.py), todo FLAC passa por `clear()`, `clear_pictures()` e é salvo com `padding=lambda info: min(info.size, 4096)`, cravando o teto de padding em **4 KB**.
+* **MP3 com tags conflitantes:** Cabeçalhos residuais `APEv2` (comuns após passar pelo MP3Gain ou foobar2000) e rodapés `ID3v1` de 30 bytes são removidos, gravando estritamente em **ID3v2.3 (UTF-16)** com quadro `APIC` único (`type=3`, Front Cover).
+* **Fim do bug `01 - 01 - Música` e lixo de rip:** O [`normalizer.py`](app/core/normalizer.py) converte todas as strings para **Unicode NFC** (corrigindo acentos decompostos em NFD vindos do macOS que falham em fontes bitmap), remove numeração duplicada no título, limpa sufixos como `(Official Video)`, `[Remastered 2011]`, `(320kbps)` e migra participações (`feat. X`) do título para a tag de artista da faixa, preservando o `Album Artist` para não quebrar o agrupamento da pasta.
+* **Trava de 200 caracteres e FAT32:** Caracteres ilegais em FAT32 (`< > : " / \ | ? *`), nomes reservados do DOS (`CON`, `AUX`, `NUL`, `COM1`..`LPT9`) e pontos no final de nomes de pastas (como `...And Justice for All` ou `St. Germain`) são higienizados. O caminho relativo completo (`Artista/Álbum/01 - Faixa.ext`) nunca ultrapassa **200 caracteres**, truncando apenas o título da música sem cortar o número da faixa nem a extensão, protegendo o buffer `char[256]` de firmwares escritos em C.
+
+---
+
+### 4. Sincronização por Álbum (`Release-Centric`) e duração física real (`±3s`)
+Consultar a API do MusicBrainz faixa por faixa em uma biblioteca grande leva horas devido ao limite de 1 requisição por segundo, além de misturar metadados de coletâneas ("Various Artists") no meio de álbuns de estúdio.
+
+* Em [`musicbrainz.py`](app/services/musicbrainz.py) e [`reconciler.py`](app/core/reconciler.py), a busca agrupa os arquivos por álbum e faz **1 consulta de Release por álbum**.
+* As faixas locais são cruzadas com o Release combinando **similaridade de título**, **número de faixa/disco** e a **duração física real do áudio (`duration` em segundos, tolerância `±3s`)** extraída via Mutagen — diferenciando versões de estúdio de faixas *Live*, *Radio Edit* ou *Extended*.
+* As letras sincronizadas buscadas no **LRCLib** ([`lrclib.py`](app/services/lrclib.py)) também filtram os resultados pela duração física (`<= 3s`), evitando embutir timestamps deslocados. Todas as respostas (incluindo buscas sem resultado) ficam salvas localmente em SQLite (`WAL`) com auto-recuperação de schema ([`cache.py`](app/services/cache.py)).
+
+---
+
+## Estrutura do Projeto
 
 ```text
 echo-organizer-dap/
-├── frontend/                  # Código e recursos da Interface Web
-│   ├── index.html             # Estrutura visual e área de arrastar arquivos (Drop Zone)
-│   ├── styles.css             # Estilização visual (Efeitos Glassmorphism e layouts)
-│   └── app.js                 # Consumo de APIs e gerenciamento de estado do frontend
-├── main.py                    # Servidor FastAPI, endpoints REST e pontes do SO
-├── musicbrainz_service.py     # Cliente HTTP para serviços MusicBrainz e LRCLib (com rate limiting)
-├── tagger_service.py          # Manipulação binária de tags e rotina de cópia física
-├── Dockerfile                 # Instruções de montagem da imagem do container
-├── docker-compose.yml         # Orquestração do ecossistema e mapeamento de volumes
-└── requirements.txt           # Dependências do ecossistema Python
+├── app/
+│   ├── main.py                   # Factory FastAPI, rotas estáticas e ciclo de vida (lifespan)
+│   ├── config.py                 # Limites de hardware DAP/FAT32, rate-limits e logger
+│   ├── security.py               # Proteção ASGI contra DNS Rebinding, CSRF cross-origin e CSP
+│   ├── schemas.py                # Schemas Pydantic de entrada e saída da API
+│   ├── api/
+│   │   ├── routes_fs.py          # Explorador nativo de discos e cartões SD (/api/fs/*)
+│   │   ├── routes_library.py     # Scanner de diretórios, preview de caminhos e library_index.txt
+│   │   ├── routes_metadata.py    # Rotas de sincronização MusicBrainz (individual e por álbum)
+│   │   └── routes_jobs.py        # Fila de gravação em background com streaming SSE e Pause/Cancel
+│   ├── core/
+│   │   ├── normalizer.py         # Normalização NFC, limpeza semântica, feat. e caminhos FAT32
+│   │   ├── cover_processor.py    # Validação binária SOF0 4:2:0 e reencoding via Pillow
+│   │   └── reconciler.py         # Reconciliação de álbuns ponderada por duração física (+-3s)
+│   └── services/
+│       ├── audio_tagger.py       # Leitura e gravação limpa de containers MP3, FLAC e M4A/MP4
+│       ├── fat32_writer.py       # Escrita sequencial em Duas Passadas + os.fsync + staging
+│       ├── musicbrainz.py        # Cliente Release-Centric MusicBrainz e Cover Art Archive
+│       ├── lrclib.py             # Cliente LRCLib filtrado por duração física
+│       ├── cache.py              # Cache persistente SQLite (WAL) e cache em memória de capas
+│       ├── filesystem.py         # Descoberta de unidades locais/removíveis e listagem segura
+│       ├── indexer.py            # Gerador do mapa library_index.txt
+│       └── job_manager.py        # Worker de jobs assíncronos e eventos Server-Sent Events (SSE)
+├── frontend/
+│   ├── index.html                # Interface Cyberpunk Retro-Hardware (transporte DAT e visor VFD)
+│   ├── styles.css                # Estilização industrial de alto contraste
+│   └── app.js                    # Controle de estado por álbum, detector de colisões e cliente SSE
+└── requirements.txt              # Dependências Python
 ```
 
 ---
 
-## Guia de Instalação e Execução
+## Como rodar
 
-Selecione um dos dois métodos abaixo para inicializar a aplicação no seu computador.
+### Pré-requisitos
+* **Python 3.10+**
 
-### Método A: Execução Local Nativa (Altamente Recomendado)
+### 1. Instalar dependências
+```bash
+pip install -r requirements.txt
+```
 
-Este método é o recomendado para obter a melhor experiência de usuário, pois permite que o backend do EchoOrganize se comunique diretamente com o seu sistema operacional para abrir as caixas de seleção de pasta nativas do Windows ou Linux ao clicar em **"Procurar..."**.
+### 2. Iniciar o servidor
+```bash
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
 
-#### Pré-requisitos:
-* Ter o Python 3.10 ou superior instalado na sua máquina (certifique-se de marcar a opção **"Add Python to PATH"** durante a instalação).
+Abra no navegador: **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
 
-#### Passo a Passo:
-1. Abra o terminal de comando de sua preferência (PowerShell, Prompt de Comando ou Terminal Linux) e navegue até a pasta do projeto:
-   ```bash
-   cd "C:\Caminho\Para\O\Projeto\echo-organizer-dap"
-   ```
-2. Instale as bibliotecas necessárias declaradas no arquivo de dependências:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Inicie o servidor web utilizando o Uvicorn:
-   ```bash
-   python -m uvicorn main:app --host 127.0.0.1 --port 8000
-   ```
-4. Abra o seu navegador web e acesse o endereço da aplicação local: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-
----
-
-### Método B: Execução Isolada via Docker
-
-Este método é recomendado caso você prefira não instalar o Python ou dependências diretamente na sua máquina hospedeira, ou queira rodar o projeto de forma completamente isolada.
-
-#### Pré-requisitos:
-* Ter o Docker e o Docker Compose instalados no sistema operacional.
-
-#### Passo a Passo:
-1. Abra o arquivo `docker-compose.yml` e ajuste os mapeamentos de volumes sob a chave `volumes` para que o container consiga enxergar seus discos rígidos ou o cartão SD da sua máquina local:
-   ```yaml
-   volumes:
-     # Mapeia a pasta de músicas do seu computador para dentro do container
-     - C:\Users\SeuUsuario\Music:/app/host_music
-     # Mapeia a unidade física do seu cartão SD ou pasta de destino
-     - E:\Music:/app/host_destination
-   ```
-2. Abra o terminal na raiz do projeto e construa/inicialize os containers em plano de fundo:
-   ```bash
-   docker compose up --build -d
-   ```
-3. Acesse em seu navegador: [http://localhost:8000](http://localhost:8000)
-
-> ⚠️ **Aviso de Configuração para Usuários de Docker:**
-> Por restrições de isolamento e segurança de containers, o backend em execução no Docker não conseguirá abrir o explorador de arquivos nativo do seu computador. Os botões **"Procurar..."** ficarão desabilitados. Você deverá preencher os caminhos manualmente utilizando as rotas internas que mapeou no passo anterior (exemplo: `/app/host_music`) ou utilizar o arrasto de pastas diretamente no navegador.
-
----
-
-## Manual de Operação da Interface
-
-1. **Definição de Rotas:** Insira os caminhos das suas pastas. O campo *"Origem"* representa a pasta de músicas desorganizadas que o programa irá ler. O campo *"Destino"* é a pasta limpa (ou a unidade de disco do cartão SD) onde a nova estrutura higienizada será gravada.
-2. **Utilizando o Drag & Drop:** Se não quiser digitar o caminho, você pode arrastar uma pasta de música do seu computador e soltá-la em qualquer lugar da janela do navegador. O EchoOrganize executará uma busca heurística em locais comuns para decifrar a rota absoluta do arquivo e carregá-la. Se houver nomes idênticos em mais de um lugar, uma tela interativa solicitará que você confirme a pasta correta.
-3. **Varredura e Mesclagem de Arquivos:** Ao definir a rota ou soltar uma pasta, a varredura se inicia. O programa lê apenas extensões compatíveis (`.mp3`, `.flac`, `.m4a`, `.mp4`). Se você arrastar pastas consecutivas, o sistema somará os arquivos na tabela de trabalho, permitindo consolidar múltiplos locais em uma única rodada. Arquivos já organizados no destino aparecem marcados em verde e são desmarcados por padrão.
-4. **Consulta no MusicBrainz (Opcional):** Se as músicas originais não contiverem metadados ou nomes compreensíveis, selecione os itens desejados e clique em *"Buscar Lote MusicBrainz"* ou use a busca individual em cada linha. O backend gerencia o intervalo de requisições exigido pelos servidores externos (janela de 1.2 segundos por faixa) para evitar bloqueios de IP.
-5. **Gravação Física Ordenada:** Clique no botão azul *"Gravar e Organizar Sequencialmente"* na parte inferior da interface. O sistema criará as pastas estruturadas no formato `Artista/Álbum/Faixa`, processará e comprimirá as imagens, embutirá as letras e escreverá fisicamente os arquivos de áudio e os arquivos `.lrc` na ordem temporal descrita no método FAT32.
-6. **Relatório da Biblioteca:** Ao final de todo o processo, a ferramenta gravará um arquivo chamado `library_index.txt` na raiz da pasta de destino, contendo um mapa em árvore e estatísticas estruturais exatas sobre todas as músicas organizadas na sua biblioteca de áudio portátil.
+### Fluxo de uso rápido
+1. Clique em **`[ EXPLORAR ]`** no campo de **Origem** para escolher a pasta com seus arquivos brutos (`.mp3`, `.flac`, `.m4a`, `.mp4`) e no campo de **Destino** para selecionar a unidade do cartão SD do DAP (ou uma pasta local de saída).
+2. Clique em **`VARRER & ANALISAR BARRAMENTO`**. O sistema extrai a duração física real de cada faixa, aplica a limpeza local de nomes/tags e agrupa tudo em blocos de álbum mostrando o preview exato do endereço físico FAT32 (`[XXX/200B]`) e eventuais colisões de nome.
+3. *(Opcional)* Clique em **`SINCRONIZAR ÁLBUNS [MUSICBRAINZ + LRCLIB]`** (ou sincronize um álbum específico) para buscar os dados oficiais do lançamento, capas frontais e letras `.lrc` sincronizadas.
+4. Clique em **`GRAVAR & ORGANIZAR SEQUENCIALMENTE [FAT32]`** e acompanhe no console a gravação em Duas Passadas com barra de progresso em tempo real e controles de pausa/cancelamento.
